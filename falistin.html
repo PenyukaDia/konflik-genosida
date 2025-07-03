@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konflik Israel-Palestina: Sebuah Narasi Interaktif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Sober Reflection -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive dashboard centered around a chronological timeline. This structure was chosen to guide users through a complex, century-long history in a structured yet non-linear way. Users can select a major era from the timeline (e.g., 'Mandate Era', 'Major Wars', 'Peace Process'), which dynamically updates the main content view. This view contains digestible "event cards," interactive data visualizations (charts), and thematic summaries. This approach breaks down dense information, making it more accessible than a traditional linear report, and allows users to explore periods or themes based on their interest, enhancing usability and understanding. -->
+    <!-- Visualization & Content Choices: 
+        - Timeline (HTML/CSS/JS): Goal: Navigate time. Method: Clickable tabs. Justification: Provides a clear, high-level overview and acts as the primary navigation, simplifying exploration of a long history.
+        - Territorial Evolution (Bar Chart): Goal: Compare land division. Method: Chart.js Bar Chart showing UN plan vs. 1949 reality. Justification: Visually represents the significant territorial shift post-1948 war, which is a core grievance.
+        - Humanitarian Dashboard (Donut/Bar Charts): Goal: Show impact. Method: Chart.js charts for fatalities, displacement, food insecurity. Justification: Translates grim statistics from a table into an immediate, impactful visual summary of the 2023-2025 crisis.
+        - Public Opinion Trends (Line Chart): Goal: Show change over time. Method: Chart.js Line Chart. Justification: Effectively illustrates the declining hope for a two-state solution, a key finding in the report's conclusion.
+        - Event Cards (HTML/JS Toggle): Goal: Inform. Method: Clickable summaries. Justification: Breaks down complex events into manageable pieces, preventing information overload.
+        - Library/Method: All charts use Chart.js (Canvas), adhering to the NO SVG/Mermaid constraint. The interactive elements are powered by vanilla JavaScript for a lightweight and self-contained application.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .timeline-item.active {
+            background-color: #4A5568; /* bg-gray-700 */
+            color: #FFFFFF;
+        }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+                max-height: 350px;
+            }
+        }
+        .bg-custom-beige { background-color: #F5F5DC; }
+        .bg-custom-light-gray { background-color: #E5E7EB; }
+        .text-custom-dark-slate { color: #2F4F4F; }
+        .border-custom-olive { border-color: #556B2F; }
+        .accent-custom-olive { background-color: #556B2F; }
+        .accent-custom-red { background-color: #8B0000; }
+    </style>
+</head>
+<body class="bg-custom-beige text-custom-dark-slate">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-5xl font-bold mb-2">Satu Abad Konflik Israel-Palestina</h1>
+            <p class="text-lg md:text-xl text-gray-600">Sebuah Narasi Interaktif dari Janji Imperial hingga Realitas Kontemporer (1916-2025)</p>
+        </header>
+
+        <nav id="timeline-nav" class="mb-8 flex flex-wrap justify-center gap-2">
+        </nav>
+
+        <main id="main-content">
+        </main>
+    </div>
+
+    <script>
+        const appData = {
+            timeline: [
+                { id: "era-foundational", title: "Era Fondasi (1916-1922)" },
+                { id: "era-mandate", title: "Era Mandat (1920-1947)" },
+                { id: "era-wars", title: "Era Perang Besar (1948-1973)" },
+                { id: "era-peace-intifada", title: "Upaya Damai & Intifada (1980-2005)" },
+                { id: "era-stalemate", title: "Kebuntuan Modern (2005-2025)" }
+            ],
+            content: {
+                "era-foundational": {
+                    title: "Warisan Imperial dan Janji yang Bertentangan",
+                    intro: "Lanskap geopolitik Timur Tengah berubah secara dramatis dengan runtuhnya Kekaisaran Ottoman selama Perang Dunia I. Periode ini ditandai oleh intervensi kekuatan Eropa dan janji-janji yang saling bertentangan yang menjadi dasar konflik Israel-Palestina.",
+                    events: [
+                        { 
+                            title: "Perjanjian Sykes-Picot (1916)",
+                            summary: "Kesepakatan rahasia antara Inggris dan Prancis untuk membagi wilayah Arab Ottoman. Palestina awalnya ditetapkan untuk administrasi internasional.",
+                            details: "Perjanjian ini mencerminkan ambisi imperialis yang mengabaikan aspirasi lokal, menanamkan ketidakpercayaan yang mendalam antara negara-negara Arab dan kekuatan Barat. Ini menciptakan perbatasan buatan dan meletakkan dasar bagi keluhan di masa depan."
+                        },
+                        {
+                            title: "Deklarasi Balfour (1917)",
+                            summary: "Surat dari Menteri Luar Negeri Inggris Arthur Balfour yang mendukung 'pendirian rumah nasional bagi orang-orang Yahudi di Palestina'.",
+                            details: "Deklarasi ini secara fundamental mengubah masa depan Palestina. Bagi orang Palestina, ini dianggap sebagai ketidakadilan mendasar, menjanjikan tanah yang sudah dihuni oleh mayoritas Arab. Ini menciptakan 'kewajiban ganda' yang tidak dapat didamaikan bagi Inggris dan menjadi katalisator bagi konflik di masa depan."
+                        },
+                        {
+                            title: "Mandat Inggris untuk Palestina (1922)",
+                            summary: "Liga Bangsa-Bangsa secara resmi memberikan mandat kepada Inggris untuk mengelola Palestina, yang menggabungkan Deklarasi Balfour.",
+                            details: "Mandat ini menginstitusionalkan janji-janji yang saling bertentangan: membina 'rumah nasional Yahudi' sambil seharusnya mempersiapkan Palestina untuk kemerdekaan. Kerangka kerja yang cacat ini memfasilitasi imigrasi dan akuisisi tanah Yahudi, yang mengarah pada pengembangan dua masyarakat yang terpisah dan akhirnya kegagalan mandat."
+                        }
+                    ]
+                },
+                "era-mandate": {
+                    title: "Meningkatnya Ketegangan dan Gerakan Nasionalis",
+                    intro: "Di bawah Mandat Inggris, Palestina menjadi tempat persaingan aspirasi nasional. Kebijakan Inggris, khususnya dukungannya terhadap proyek Zionis, menyebabkan perubahan demografis dan politik yang signifikan, memicu ketegangan dan kekerasan yang meningkat.",
+                    events: [
+                        {
+                            title: "Imigrasi Zionis & Akuisisi Tanah",
+                            summary: "Aliran masuk imigran Yahudi yang substansial, terutama pada tahun 1930-an, dan pembelian strategis tanah oleh institusi Zionis.",
+                            details: "Pendekatan sistematis untuk membangun infrastruktur sosial dan ekonomi Yahudi yang mandiri ini secara langsung berdampak pada populasi Palestina, meningkatkan persaingan untuk sumber daya dan secara fundamental mengubah keseimbangan demografis, yang memperkuat perlawanan Arab."
+                        },
+                        {
+                            title: "Pemberontakan Besar Arab (1936-1939)",
+                            summary: "Pemberontakan rakyat yang signifikan oleh orang Arab Palestina menuntut diakhirinya pemerintahan kolonial Inggris dan dukungan untuk Zionisme.",
+                            details: "Ditandai oleh pemogokan umum dan serangan kekerasan, pemberontakan tersebut akhirnya ditumpas oleh pasukan Inggris. Ini menyoroti meningkatnya perlawanan terhadap kebijakan Mandat dan dampaknya yang langgeng terhadap kepemimpinan Palestina."
+                        },
+                        {
+                            title: "Rencana Pembagian PBB (1947)",
+                            summary: "Inggris menyerahkan masalah Palestina kepada PBB, yang mengusulkan pembagian wilayah menjadi negara Arab dan Yahudi (Resolusi 181).",
+                            details: "Rencana tersebut diterima oleh para pemimpin Yahudi tetapi ditolak mentah-mentah oleh para pemimpin Arab, yang melihatnya sebagai pelanggaran hak mereka untuk menentukan nasib sendiri. Penolakan ini, ditambah dengan berakhirnya Mandat yang akan segera terjadi, secara langsung mengarah pada perang."
+                        }
+                    ],
+                    visualizations: [
+                        { type: 'chart', id: 'partitionPlanChart', title: 'Alokasi Tanah: Rencana PBB 1947 vs. Realitas 1949' }
+                    ]
+                },
+                "era-wars": {
+                    title: "Kelahiran Israel dan Perang Arab-Israel",
+                    intro: "Periode setelah Mandat Inggris didefinisikan oleh konfrontasi militer langsung yang secara mendalam membentuk kembali lanskap teritorial dan politik Timur Tengah, yang mengarah pada berdirinya Negara Israel dan pemindahan ratusan ribu orang Palestina.",
+                     events: [
+                        {
+                            title: "Perang Arab-Israel 1948 (Nakba)",
+                            summary: "Proklamasi Negara Israel memicu perang dengan koalisi negara-negara Arab. Israel memperluas wilayahnya di luar batas PBB.",
+                            details: "Konsekuensi paling tragis adalah pemindahan massal ratusan ribu orang Arab Palestina, sebuah peristiwa yang dikenal sebagai Nakba ('bencana'). Hal ini menciptakan masalah pengungsi Palestina yang abadi dan mengubah konflik menjadi konfrontasi antar negara."
+                        },
+                        {
+                            title: "Pembentukan PLO (1964)",
+                            summary: "Organisasi Pembebasan Palestina (PLO) didirikan untuk menyatukan upaya politik Palestina dan menegaskan hak untuk menentukan nasib sendiri.",
+                            details: "PLO mengisi kekosongan kepemimpinan yang signifikan bagi orang-orang yang tercerai-berai, mengubah mereka dari pengungsi menjadi masyarakat dengan suara politik yang bersatu dan aspirasi nasional. Pengakuannya di kemudian hari sebagai 'satu-satunya wakil sah rakyat Palestina' menandai langkah penting menuju pengakuan internasional."
+                        },
+                         {
+                            title: "Perang Enam Hari (1967)",
+                            summary: "Kemenangan Israel yang menentukan di mana ia merebut Jalur Gaza, Tepi Barat (termasuk Yerusalem Timur), dan Dataran Tinggi Golan.",
+                            details: "Perang ini secara fundamental mengubah inti konflik, menggesernya dari perjuangan atas keberadaan Israel menjadi masalah pendudukan. Ini melahirkan Resolusi PBB 242, yang menetapkan paradigma 'tanah untuk perdamaian' yang menjadi landasan negosiasi di masa depan."
+                        },
+                        {
+                            title: "Perang Yom Kippur (1973)",
+                            summary: "Mesir dan Suriah melancarkan serangan mendadak untuk merebut kembali wilayah yang hilang pada tahun 1967. Perang tersebut akhirnya mengarah pada jalan buntu.",
+                            details: "Perang yang mahal bagi semua pihak ini menciptakan dorongan baru untuk solusi diplomatik. Ini secara langsung membuka jalan bagi perjanjian damai Israel-Mesir tahun 1979 dan memperkuat peran AS sebagai mediator utama dalam konflik tersebut."
+                        }
+                    ]
+                },
+                "era-peace-intifada": {
+                    title: "Upaya Damai, Intifada, dan Munculnya Aktor Baru",
+                    intro: "Setelah puluhan tahun peperangan konvensional, konflik memasuki fase baru yang ditandai oleh pemberontakan rakyat, upaya perdamaian yang dinegosiasikan, dan munculnya aktor-aktor Palestina baru yang berbeda secara ideologis.",
+                    events: [
+                        {
+                            title: "Intifada Pertama (1987-1993)",
+                            summary: "Pemberontakan rakyat yang sebagian besar bersifat spontan dan tanpa kekerasan terhadap pendudukan Israel di Tepi Barat dan Jalur Gaza.",
+                            details: "Intifada menggalang opini publik internasional dan menyoroti kebutuhan mendesak akan solusi politik. Hal ini membuat pendudukan militer menjadi semakin sulit dan secara langsung membuka jalan bagi Kesepakatan Oslo."
+                        },
+                        {
+                            title: "Kesepakatan Oslo (1993, 1995)",
+                            summary: "Kesepakatan bersejarah yang menandai saling pengakuan antara PLO dan Israel, dan menciptakan Otoritas Palestina (PA) dengan pemerintahan mandiri yang terbatas.",
+                            details: "Meskipun tampaknya memberikan pemerintahan mandiri, Kesepakatan tersebut menginstitusionalkan kendali Israel atas perbatasan, sumber daya, dan keamanan. Perluasan pemukiman Israel yang berkelanjutan merusak kepercayaan dan berkontribusi pada kegagalan akhirnya."
+                        },
+                        {
+                            title: "Intifada Kedua (2000-2005)",
+                            summary: "Dipicu oleh kegagalan KTT Camp David, pemberontakan ini dengan cepat berubah menjadi periode kekerasan yang tinggi, termasuk pemboman bunuh diri dan operasi militer Israel skala besar.",
+                            details: "Intifada Kedua secara efektif memadamkan optimisme era Oslo, memperkuat siklus kekerasan dan ketidakpercayaan yang merusak, dan mengarah pada pembangunan penghalang Tepi Barat oleh Israel."
+                        },
+                        {
+                            title: "Kebangkitan Hamas",
+                            summary: "Didirikan pada tahun 1987, Hamas muncul sebagai gerakan perlawanan Islamis yang menolak kesepakatan dengan Israel.",
+                            details: "Hamas memperoleh daya tarik dengan menawarkan alternatif dari pendekatan sekuler PLO. Kemenangannya dalam pemilihan legislatif tahun 2006 menyebabkan perpecahan internal yang mendalam dalam pemerintahan Palestina, dengan Hamas secara efektif menguasai Gaza."
+                        }
+                    ],
+                     visualizations: [
+                        { type: 'chart', id: 'opinionTrendChart', title: 'Tren Opini Publik: Dukungan untuk Solusi Dua Negara (2020-2025)' }
+                    ]
+                },
+                 "era-stalemate": {
+                    title: "Kebuntuan Modern dan Krisis Kemanusiaan",
+                    intro: "Periode sejak Intifada Kedua ditandai oleh kebuntuan yang abadi, perluasan pemukiman yang berkelanjutan, krisis kemanusiaan yang mendalam di Gaza, dan siklus kekerasan yang berulang, yang memuncak pada eskalasi parah yang diamati pada tahun 2023-2025.",
+                    events: [
+                        {
+                            title: "Perluasan Pemukiman & Kontrol",
+                            summary: "Perluasan pemukiman Israel di Tepi Barat berlanjut dengan kecepatan yang belum pernah terjadi sebelumnya, yang menurut para kritikus merupakan aneksasi de facto.",
+                            details: "Kebijakan ini, ditambah dengan pembatasan pergerakan dan kekerasan pemukim, semakin memecah belah wilayah Palestina dan secara luas dipandang sebagai hambatan utama bagi solusi dua negara yang layak."
+                        },
+                        {
+                            title: "Serangan 7 Oktober 2023 & Perang Gaza",
+                            summary: "Serangan yang dipimpin Hamas di Israel selatan memicu operasi militer Israel skala penuh di Gaza, yang menyebabkan krisis kemanusiaan yang dahsyat.",
+                            details: "Perang tersebut telah menyebabkan puluhan ribu kematian, pemindahan massal hampir seluruh populasi Gaza, dan risiko kelaparan yang kritis, yang semakin memperdalam siklus kekerasan."
+                        },
+                        {
+                            title: "Kebuntuan Internasional & Konsekuensi Hukum",
+                            summary: "Meskipun tekanan diplomatik meningkat, masyarakat internasional sebagian besar lumpuh. Mahkamah Internasional (ICJ) telah mengeluarkan tindakan sementara terhadap Israel atas tuduhan genosida.",
+                            details: "Kebuntuan diplomatik, yang diperparah oleh perpecahan geopolitik, memungkinkan krisis kemanusiaan terus berlanjut. Tindakan hukum oleh badan-badan PBB dan ICJ menyoroti pengawasan moral dan hukum yang meningkat terhadap kebijakan Israel."
+                        },
+                        {
+                            title: "Opini Publik & Prospek Masa Depan",
+                            summary: "Pada tahun 2025, dukungan untuk solusi dua negara telah mencapai titik terendah baru di antara orang Israel. Orang Palestina tetap mendukung konsep tersebut tetapi mayoritas menganggapnya tidak praktis.",
+                            details: "Ketidakpercayaan yang mendalam dan persepsi negatif yang saling bercermin di antara kedua masyarakat menciptakan penghalang yang signifikan bagi perdamaian. Tanpa pergeseran fundamental dalam sikap dan kepemimpinan yang bersatu, konflik kemungkinan akan terus berlanjut."
+                        }
+                    ],
+                    visualizations: [
+                        { type: 'chart', id: 'gazaHumanitarianChart', title: 'Krisis Kemanusiaan di Gaza (Oktober 2023 - Juni 2025)' },
+                        { type: 'chart', id: 'displacementChart', title: 'Pengungsian & Keamanan Pangan di Gaza' }
+                    ]
+                }
+            },
+            chartData: {
+                partitionPlan: {
+                    labels: ['Negara Yahudi', 'Negara Arab'],
+                    datasets: [
+                        {
+                            label: 'Rencana Pembagian PBB 1947 (%)',
+                            data: [56.5, 43.5],
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Kontrol setelah Perang 1948 (%)',
+                            data: [77, 23],
+                            backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                opinionTrend: {
+                    labels: ['2021', 'Akhir 2022', 'Awal 2024', 'Awal 2025'],
+                    datasets: [
+                        {
+                            label: 'Dukungan Yahudi Israel (%)',
+                            data: [42, 34, 26, 16],
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Dukungan Palestina (%)',
+                            data: [39, 33, null, 40],
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                gazaHumanitarian: {
+                    labels: ['Tewas', 'Terluka'],
+                    datasets: [{
+                        label: 'Korban Manusia',
+                        data: [56156, 132239],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(255, 159, 64, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                displacement: {
+                    labels: ['Mengungsi', 'Tidak Mengungsi'],
+                    datasets: [{
+                        label: 'Populasi Gaza',
+                        data: [90, 10],
+                        backgroundColor: [
+                            'rgba(153, 102, 255, 0.7)',
+                            'rgba(201, 203, 207, 0.7)'
+                        ],
+                        hoverOffset: 4
+                    }]
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const timelineNav = document.getElementById('timeline-nav');
+            const mainContent = document.getElementById('main-content');
+
+            appData.timeline.forEach(era => {
+                const button = document.createElement('button');
+                button.className = 'timeline-item px-4 py-2 text-sm md:text-base font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-100 transition';
+                button.textContent = era.title;
+                button.dataset.target = era.id;
+                timelineNav.appendChild(button);
+            });
+
+            const renderContent = (eraId) => {
+                mainContent.innerHTML = '';
+                const eraData = appData.content[eraId];
+                if (!eraData) return;
+
+                const section = document.createElement('section');
+                section.id = eraId;
+                section.className = 'content-section active p-4 md:p-6 bg-custom-light-gray rounded-lg shadow-inner';
+
+                section.innerHTML = `
+                    <h2 class="text-2xl md:text-3xl font-bold text-custom-dark-slate mb-2">${eraData.title}</h2>
+                    <p class="mb-6 text-gray-600">${eraData.intro}</p>
+                    <div class="space-y-4">
+                        ${eraData.events.map(event => `
+                            <div class="bg-white p-4 rounded-lg shadow-md border-l-4 border-custom-olive">
+                                <h3 class="font-semibold text-lg text-custom-dark-slate">${event.title}</h3>
+                                <p class="text-gray-700 my-1">${event.summary}</p>
+                                <div class="text-sm text-gray-600 mt-2">${event.details}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${eraData.visualizations ? `
+                        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                            ${eraData.visualizations.map(vis => `
+                                <div class="bg-white p-4 rounded-lg shadow-md">
+                                    <h4 class="text-center font-semibold mb-2">${vis.title}</h4>
+                                    <div class="chart-container">
+                                        <canvas id="${vis.id}"></canvas>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                `;
+                mainContent.appendChild(section);
+
+                if (eraData.visualizations) {
+                    eraData.visualizations.forEach(vis => {
+                        if(vis.id === 'partitionPlanChart') renderPartitionPlanChart();
+                        if(vis.id === 'opinionTrendChart') renderOpinionTrendChart();
+                        if(vis.id === 'gazaHumanitarianChart') renderGazaHumanitarianChart();
+                        if(vis.id === 'displacementChart') renderDisplacementChart();
+                    });
+                }
+            };
+            
+            timelineNav.addEventListener('click', (e) => {
+                if (e.target.matches('.timeline-item')) {
+                    const targetId = e.target.dataset.target;
+                    
+                    document.querySelectorAll('.timeline-item').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    renderContent(targetId);
+                }
+            });
+            
+            // Initial render
+            document.querySelector('.timeline-item').classList.add('active');
+            renderContent(appData.timeline[0].id);
+        });
+
+        function renderChart(ctx, type, data, options) {
+            if (ctx.chart) {
+                ctx.chart.destroy();
+            }
+            ctx.chart = new Chart(ctx, { type, data, options });
+        }
+        
+        const defaultChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y + '%';
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            }
+        };
+
+        function renderPartitionPlanChart() {
+            const ctx = document.getElementById('partitionPlanChart');
+            if (!ctx) return;
+            renderChart(ctx, 'bar', appData.chartData.partitionPlan, {
+                ...defaultChartOptions,
+                plugins: {
+                    ...defaultChartOptions.plugins,
+                    title: { display: true, text: 'Perbandingan Alokasi Tanah (%)' }
+                }
+            });
+        }
+        
+        function renderOpinionTrendChart() {
+            const ctx = document.getElementById('opinionTrendChart');
+            if (!ctx) return;
+            renderChart(ctx, 'line', appData.chartData.opinionTrend, {
+                ...defaultChartOptions,
+                 plugins: {
+                    ...defaultChartOptions.plugins,
+                    title: { display: true, text: 'Dukungan Publik untuk Solusi Dua Negara (%)' }
+                }
+            });
+        }
+        
+        function renderGazaHumanitarianChart() {
+            const ctx = document.getElementById('gazaHumanitarianChart');
+            if (!ctx) return;
+            renderChart(ctx, 'bar', appData.chartData.gazaHumanitarian, {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Korban Manusia di Gaza' },
+                    tooltip: {
+                         callbacks: {
+                            label: function(context) {
+                                return ' ' + context.parsed.x.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                           callback: function(value) {
+                                if (value >= 1000) return (value / 1000) + 'k';
+                                return value;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderDisplacementChart() {
+            const ctx = document.getElementById('displacementChart');
+            if (!ctx) return;
+             renderChart(ctx, 'doughnut', appData.chartData.displacement, {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    title: { display: true, text: 'Populasi Mengungsi di Gaza (%)' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += context.raw + '%';
+                                return label;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+    </script>
+</body>
+</html>
